@@ -159,3 +159,27 @@ def predizer():
         return jsonify(resultado), 200
     except Exception as e:
         return jsonify({"erro": f"Erro ao fazer predição: {str(e)}"}), 500
+    
+@app.route('/api/modelo/coefficients', methods=['GET'])
+def coefficients_modelo():
+    try:
+        # Obtendo o pré-processador e o classificador XGBoost do pipeline
+        preprocessor = modelo.named_steps['preprocessor']
+        classifier = modelo.named_steps['classifier']
+        
+        # Obtendo nomes das features após o OneHotEncoding
+        cat_encoder = preprocessor.named_transformers_['cat']
+        cat_features = cat_encoder.get_feature_names_out(categorical_features)
+        numeric_features = preprocessor.transformers_[1][2]
+        all_features = list(cat_features) + list(numeric_features)
+        
+        # Obtendo as importâncias das features do XGBoost
+        importancias = classifier.feature_importances_
+        
+        features_importances = {
+            feature: float(importance)
+            for feature, importance in zip(all_features, importancias)
+        }
+        return jsonify(features_importances), 200
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
