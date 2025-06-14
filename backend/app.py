@@ -4,6 +4,8 @@ from pymongo import MongoClient
 from dataclasses import dataclass, asdict
 import random
 from datetime import datetime, timedelta
+import pickle
+import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
@@ -104,3 +106,56 @@ if __name__ == "__main__":
         dados_iniciais = gerar_dados_aleatorios(20)
         colecao.insert_many(dados_iniciais)
     app.run(debug=True)
+    
+   
+with open("model.pkl", "rb") as f:
+    data = pickle.load(f)
+modelo = data["pipeline"]
+label_encoder = data["label_encoder"]
+
+
+@app.route('/api/associacoes', methods=['GET'])
+def associacoes():
+    documents = list(colecao.find({}, {'_id': 0})) 
+    if not documents:
+        return jsonify({"message": "Sem dados na colecao"}), 400
+    
+    lista = []
+    for d in documents:
+        vitima = d.get("vitima", {})  
+        lista.append({
+            "idade": vitima.get("idade"),
+            "etnia": vitima.get("etnia"),
+            "localizacao": d.get("localizacao"),
+            "tipo_do_caso": d.get("tipo_do_caso")
+        })
+    
+    df = pd.DataFrame(lista).dropna()
+    try:
+        X = df[["idade", "etnia", "localizacao"]]
+       
+        return jsonify({"message": "Endpoint pronto para implementar análise"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Erro ao processar modelo: {str(e)}"}), 500
+    
+    
+@app.route('/api/predizer', methods=['POST'])
+def predizer():
+    dados = request.get_json()
+    if not dados or not all(k in dados for k in ("idade", "etnia", "localizacao")):
+        return jsonify({"erro": "JSON inválido. Esperado: idade, etnia, localizacao"}), 400
+    
+    try:
+        df = pd.DataFrame([dados])
+        y_prob = modelo.predict_proba(df)[0]
+        y_pred_encoded = modelo.predict(df)[0]
+        y_pred = label_encoder.inverse_transform([y_pred_encoded])[0]
+        classes = label_encoder.classes_
+        
+        resultado = {
+            "classe_predita": y_pred,
+            "probabilidades": {classe: round(prob, 4) for classe, prob in zip(classes, y_prob)}
+        }
+        return jsonify(resultado), 200
+    except Exception as e:
+        return jsonify({"erro": f"Erro ao fazer predição: {str(e)}"}), 500
