@@ -1,7 +1,17 @@
+document.addEventListener('DOMContentLoaded', () => {
+    
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - 30);
+
+    document.getElementById('dataInicio').valueAsDate = inicio;
+    document.getElementById('dataFim').valueAsDate = fim;
+});
+
 let dadosCasos = [];
 let graficoRosca = null;
 let graficoDistribuicao = null;
-let graficoModelo = null;  
+let graficoModelo = null;
 
 const gradiente = [
     '#48516c', '#48507c', '#53698c', '#50759c',
@@ -14,10 +24,10 @@ async function carregarDados() {
         dadosCasos = await res.json();
         console.log("Dados carregados:", dadosCasos);
         atualizarGraficos();
-        inicializarGraficoModelo(); 
+        inicializarGraficoModelo();
     } catch (error) {
         console.error("Erro ao carregar dados:", error);
-        alert("Não foi possível carregar os dados.");  
+        alert("Não foi possível carregar os dados.");
     }
 }
 
@@ -49,51 +59,8 @@ function contarOcorrencias(dados, chave) {
     return contagem;
 }
 
-async function inicializarGraficoModelo() {
-    try {
-        const res = await fetch("http://localhost:5000/api/modelo/coefficients");
-        const data = await res.json();
-
-        const processedData = {};
-        Object.keys(data).forEach(key => {
-            processedData[key] = Number(data[key]);
-        });
-
-        const sortedEntries = Object.entries(processedData)
-            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-
-        const labels = sortedEntries.map(([key]) => key);
-        const valores = sortedEntries.map(([, value]) => value);
-
-        const ctx = document.createElement('canvas');
-        document.getElementById("graficoModelo").innerHTML = "";
-        document.getElementById("graficoModelo").appendChild(ctx);
-
-        if (graficoModelo) graficoModelo.destroy();
-
-        graficoModelo = new Chart(ctx, {  
-            type: 'bar',  
-            data: {  
-                labels: labels,  
-                datasets: [{  
-                    label: 'Importância',  
-                    data: valores,  
-                    backgroundColor: '#5d759c',  
-                    borderWidth: 1  
-                }]  
-            },  
-            options: {  
-                indexAxis: 'y',  
-                responsive: true  
-            }  
-        });
-    } catch (error) {  
-        console.error("Erro ao carregar coeficientes:", error);  
-    }
-}
-
-function atualizarGraficoRosca(dadosFiltrados) {
-    const contagem = contarOcorrencias(dadosFiltrados, "tipo_do_caso");
+function atualizarGraficoRosca(dadosFiltrados, variavel = "tipo_do_caso") {
+    const contagem = contarOcorrencias(dadosFiltrados, variavel);
     const labels = Object.keys(contagem);
     const valores = Object.values(contagem);
     const cores = gradiente.slice(0, labels.length);
@@ -167,14 +134,58 @@ function atualizarGraficoDistribuicao(dadosFiltrados) {
     });
 }
 
+async function inicializarGraficoModelo() {
+    try {
+        const res = await fetch("http://localhost:5000/api/modelo/coefficients");
+        const data = await res.json();
+
+        const processedData = {};
+        Object.keys(data).forEach(key => {
+            processedData[key] = Number(data[key]);
+        });
+
+        const sortedEntries = Object.entries(processedData)
+            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+
+        const labels = sortedEntries.map(([key]) => key);
+        const valores = sortedEntries.map(([, value]) => value);
+
+        const ctx = document.createElement('canvas');
+        document.getElementById("graficoModelo").innerHTML = "";
+        document.getElementById("graficoModelo").appendChild(ctx);
+
+        if (graficoModelo) graficoModelo.destroy();
+
+        graficoModelo = new Chart(ctx, {  
+            type: 'bar',  
+            data: {  
+                labels: labels,  
+                datasets: [{  
+                    label: 'Importância',  
+                    data: valores,  
+                    backgroundColor: '#5d759c',  
+                    borderWidth: 1  
+                }]  
+            },  
+            options: {  
+                indexAxis: 'y',  
+                responsive: true  
+            }  
+        });
+    } catch (error) {  
+        console.error("Erro ao carregar coeficientes:", error);  
+    }
+}
+
 function atualizarGraficos() {
     const dadosFiltrados = filtrarPorData(dadosCasos);
     console.log("Dados filtrados:", dadosFiltrados);
-    atualizarGraficoRosca(dadosFiltrados);
+    const variavel = document.getElementById("variavelRosca").value;
+    atualizarGraficoRosca(dadosFiltrados, variavel);
     atualizarGraficoDistribuicao(dadosFiltrados);
 }
 
-// Event listeners
 document.getElementById("dataInicio").addEventListener("change", atualizarGraficos);
 document.getElementById("dataFim").addEventListener("change", atualizarGraficos);
+document.getElementById("variavelRosca").addEventListener("change", atualizarGraficos);
 document.addEventListener('DOMContentLoaded', carregarDados);

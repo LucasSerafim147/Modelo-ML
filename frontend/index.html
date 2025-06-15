@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <meta charset="UTF-8" />
     <title>Dashboard de Casos</title>
     <style>
@@ -52,6 +52,17 @@
             border-radius: 4px;
             background-color: #f9f9f9;
         }
+        .rosca-controls {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .rosca-controls select {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -65,17 +76,24 @@
     </div>
 
     <div class="container">
-        <div class="grafico-box">
-            <h2>Gráfico de Casos</h2>
+        <div class="grafico-box rosca">
+            <div class="rosca-controls">
+                <label for="variavelRosca">Variável:</label>
+                <select id="variavelRosca">
+                    <option value="tipo_do_caso">Tipo do Caso</option>
+                    <option value="localizacao">Localização</option>
+                    <option value="vitima.etnia">Etnia da Vítima</option>
+                </select>
+            </div>
             <div id="graficoRosca"></div>
         </div>
+        
         <div class="grafico-box">
             <h2>Distribuição de Idades</h2>
             <div id="graficoDistribuicao"></div>
         </div>
     </div>
 
-  
     <div class="container">
         <div class="grafico-box" style="flex: 1 1 100%; max-width: 90%;">
             <h2>Fatores Determinantes nos Tipos de Caso</h2>
